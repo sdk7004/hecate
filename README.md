@@ -137,4 +137,4 @@ We included the video summary generated on our dev machine here:
 ## Developer
 
 Yale Song: [github](https://github.com/yalesong), [website](http://people.csail.mit.edu/yalesong)
-Seondae Kim (evony7004@gmail.com)
+and Seondae Kim (evony7004@gmail.com)
