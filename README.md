@@ -1,4 +1,4 @@
-# HECATE_Shot ver. - Video shot and Frame Extraction by Behavior
+# HECATE
 Hecate [hek-uh-tee] is a video processing library that auto-magically generates thumbnails, animated GIFs, and video summaries from videos. This library is developed and maintained by Yahoo Research, New York.
 
 The source code is Copyright 2016 Yahoo Inc. and is licensed under the terms of the Apache 2.0 License. See the [LICENSE](https://github.com/yahoo/hecate/blob/master/LICENSE) in the project root file for terms.
@@ -9,6 +9,8 @@ The technology behind this library is based on our research work. If you find th
 Yale Song, Miriam Redi, Jordi Vallmitjana, Alejandro Jaimes, 
 Proceedings of the 25th ACM International on Conference on Information and Knowledge Management, CIKM 2016
 ```
+
+Additionally, Seondae Kim had modified some codes to extract video shots and frames. This is for our deep learning model's input or making dataset. He updated and activated Hecates' video (shot) extraction.
 
 ## Installation
 Hecate has one dependency: [OpenCV library](https://github.com/opencv/opencv) with an [FFMPEG](https://github.com/FFmpeg/FFmpeg) support. You will need to install the library properly before trying out Hecate!
@@ -135,3 +137,4 @@ We included the video summary generated on our dev machine here:
 ## Developer
 
 Yale Song: [github](https://github.com/yalesong), [website](http://people.csail.mit.edu/yalesong)
+Seondae Kim (evony7004@gmail.com)
