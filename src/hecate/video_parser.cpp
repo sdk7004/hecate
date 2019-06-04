@@ -58,8 +58,8 @@ vector<hecate::ShotRange> VideoParser::parse_video(const string& in_video,
   meta.duration = _video_sec;
   
   // Frame filtering
-  if( opt.fltr_begin_sec>.0 || opt.fltr_end_sec>.0 )
-    filter_heuristic(opt.fltr_begin_sec, opt.fltr_end_sec);
+  // if( opt.fltr_begin_sec>.0 || opt.fltr_end_sec>.0 )
+  //   filter_heuristic(opt.fltr_begin_sec, opt.fltr_end_sec);
   
   if( opt.fltr_lq )
     filter_low_quality();
@@ -211,7 +211,7 @@ void VideoParser::filter_low_quality( double thrsh_bright,
 /*-----------------------------------------------------------------------*/
 {
   // filter at most n percent of the total frames
-  int nfrm_nperc = (int)(0.15*_nfrm_given);
+  int nfrm_nperc = (int)(0.2*_nfrm_given);
   
   vector<double> v_brightness(_nfrm_given,0.0);
   vector<double> v_sharpness(_nfrm_given,0.0);

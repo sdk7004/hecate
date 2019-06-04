@@ -174,6 +174,7 @@ void run_hecate( hecate_params& opt, vector<int>& v_thumb_idx,
     
     bool gif = opt.gif;
     opt.gif = false;
+    opt.lmov = parser.meta.duration;    //SDK Time reset
     detect_highlight_shots( opt, parser.meta, v_shot_range,
                             histo_features, diff_features, v_mov_range );
     opt.gif = gif;

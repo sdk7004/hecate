@@ -38,18 +38,22 @@ void detect_highlight_shots( hecate_params& opt, hecate::video_metadata& meta,
 
   int min_shot_len, max_shot_len, min_num_shot;
   if( opt.mov ) {
-    double addrate_min = 0.5 * sqrt(max(0.0,(double)opt.lmov-15.0)/45.0);
-    double addrate_max = sqrt(max(0.0,(double)opt.lmov-15.0)/45.0);
-    min_shot_len = floor((3.0+addrate_min) * meta.fps / opt.step_sz);
-    max_shot_len = round((1.0+addrate_max) * min_shot_len);
-    min_num_shot = ceil( opt.lmov / 3.0 );
-    if( opt.debug ) {
-      printf("detect_highlight_shots(): "
-             "min_shot_len=%d, max_shot_len=%d, min_num_shot=%d, "
-             "addrate_min=%f, addrate_max=%f\n",
-             min_shot_len, max_shot_len, min_num_shot,
-             addrate_min, addrate_max);
-    }
+    min_shot_len = floor((3.0) * meta.fps / opt.step_sz);
+    max_shot_len = round((7.0) * min_shot_len);
+    min_num_shot = ceil( meta.duration / 3.0 );
+
+    // double addrate_min = 0.5 * sqrt(max(0.0,(double)opt.lmov-15.0)/45.0);
+    // double addrate_max = sqrt(max(0.0,(double)opt.lmov-15.0)/45.0);
+    // min_shot_len = floor((3.0+addrate_min) * meta.fps / opt.step_sz);
+    // max_shot_len = round((1.0+addrate_max) * min_shot_len);
+    // min_num_shot = ceil( opt.lmov / 3.0 );
+    // // if( opt.debug ) {
+    //   printf("detect_highlight_shots(): "
+    //          "min_shot_len=%d, max_shot_len=%d, min_num_shot=%d, "
+    //          "addrate_min=%f, addrate_max=%f\n",
+    //          min_shot_len, max_shot_len, min_num_shot,
+    //          addrate_min, addrate_max);
+    // }
   }
   else {
     min_shot_len = floor(1.5 * meta.fps / opt.step_sz);
@@ -59,6 +63,8 @@ void detect_highlight_shots( hecate_params& opt, hecate::video_metadata& meta,
 
   // Active set containing candidates for highlight shots
   vector<hecate::Range> v_candidates;
+  double avg = 0.0;
+  int mo =0;
   for(size_t i=0; i<v_shot_range.size(); i++) {
     hecate::Range shot(v_shot_range[i].start, v_shot_range[i].end);
     shot.v_idx = v_shot_range[i].v_idx;
@@ -67,6 +73,9 @@ void detect_highlight_shots( hecate_params& opt, hecate::video_metadata& meta,
     for(int i=shot.start; i<=shot.end; i++)
       avg_diff += diff.at<double>(i);
     avg_diff/=shot.length();
+    avg+=avg_diff;
+    mo++;
+    
     
     // Discard if too short.
     if( shot_len < min_shot_len ) {
@@ -75,14 +84,15 @@ void detect_highlight_shots( hecate_params& opt, hecate::video_metadata& meta,
     }
     
     // Discard if too static
-    if( avg_diff < 0.05 ) {
-      //printf("Discard STATIC (shot_len=%d, avg_diff=%f) ", shot_len, avg_diff); shot.print();
+    if( avg_diff < 0.03 ) {   //SDK changed at last times
+      // printf("Discard STATIC (shot_len=%d, avg_diff=%f) ", shot_len, avg_diff); shot.print();
       continue;
     }
-    
+
     // Add the shot
     v_candidates.push_back( shot );
   }
+  printf("avg: %f\n", avg/mo);
 
   // If there's not enough shots, merged adjacent shots and add them
   if( (int)v_candidates.size() < min_num_shot ) {
@@ -153,6 +163,14 @@ void detect_highlight_shots( hecate_params& opt, hecate::video_metadata& meta,
         shot_len = shot.length();
       }
     }
+    v_candidates[i] = shot;
+  }
+
+  // SDK Heuristic cutting (front and end)
+  for(size_t i=0; i<v_candidates.size(); i++) {
+    hecate::Range shot = v_candidates[i];
+    shot.start+= int(0.5*meta.fps);
+    shot.end-= int(0.5*meta.fps);
     v_candidates[i] = shot;
   }
   
@@ -437,6 +455,7 @@ void generate_highlight_clips( hecate_params& opt, vector<hecate::Range>& v_high
   
   // prefix for hiddden files generated during execution
   const char *cdot = "__tmp__";
+  const string _ffpath = "./frames";    //SDK - The path for an output of video frames
   
   string filename = hecate::get_filename( std::string(opt.in_video) );
   
@@ -492,36 +511,50 @@ void generate_highlight_clips( hecate_params& opt, vector<hecate::Range>& v_high
     // --------------------- VIDEO CLIP GENERATOR ---------------------
     if( opt.mov )
     {
-      // Crop video segment
-      sprintf( outfile, "%s/%s%s_seg%03d.mp4",
-              opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
-      hecate::ffmpeg_video_crop( opt.in_video, std::string(outfile),
-                             start_pos, duration, opt.mov_width_px );
+      // // Crop video segment
+      // sprintf( outfile, "%s/%s%s_seg%03d.mp4",
+      //         opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
+      // hecate::ffmpeg_video_crop( opt.in_video, std::string(outfile),
+      //                        start_pos, duration, opt.mov_width_px );
       
-      // Apply video fade-in/out
-      sprintf( infile, "%s/%s%s_seg%03d.mp4",
-              opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
-      sprintf( outfile, "%s/%s%s_segV%03d.mp4",
-              opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
-      if( opt.fade ) {
-        hecate::ffmpeg_video_fade( std::string(infile), std::string(outfile),
-                               r.end-r.start+1,i==0 );
-      }
-      else {
-        sprintf( cmd, "mv %s %s", infile, outfile ); system( cmd );
-      }
+
+      // SDK - closed
+      // sprintf( outfile, "%s/activity%03d.mp4",
+      //         opt.out_dir.c_str(), shotid);
+      // hecate::ffmpeg_video_crop( opt.in_video, std::string(outfile),
+      //                        start_pos, duration, opt.mov_width_px );
+
+      // //sprintf( infile, "%s", outfile );   //SDK - outfile(video[mov] file) to infile
+      // sprintf( infile, "%s/activity#%d",             //SDK - New outfile path (PNG files)
+      //        _ffpath.c_str(), shotid);
+
+
+
+
+      // // Apply video fade-in/out
+      // sprintf( infile, "%s/%s%s_seg%03d.mp4",
+      //         opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
+      // sprintf( outfile, "%s/%s%s_segV%03d.mp4",
+      //         opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
+      // if( opt.fade ) {
+      //   hecate::ffmpeg_video_fade( std::string(infile), std::string(outfile),
+      //                          r.end-r.start+1,i==0 );
+      // }
+      // else {
+      //   sprintf( cmd, "mv %s %s", infile, outfile ); system( cmd );
+      // }
       
-      // Apply audio fade-in/out
-      sprintf( infile, "%s/%s%s_segV%03d.mp4",
-              opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
-      sprintf( outfile, "%s/%s%s_segAV%03d.mp4",
-              opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
-      hecate::ffmpeg_audio_fade( std::string(infile), std::string(outfile),
-                             sec_duration, fps );
+      // // Apply audio fade-in/out
+      // sprintf( infile, "%s/%s%s_segV%03d.mp4",
+      //         opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
+      // sprintf( outfile, "%s/%s%s_segAV%03d.mp4",
+      //         opt.out_dir.c_str(), cdot, filename.c_str(), shotid);
+      // hecate::ffmpeg_audio_fade( std::string(infile), std::string(outfile),
+      //                        sec_duration, fps );
       
       // Log filename for concat
-      fprintf( ptr_filelist, "file %s%s_segAV%03d.mp4\n",
-              cdot, filename.c_str(), shotid);
+      // fprintf( ptr_filelist, "file %s/activity%03d.mp4\n",
+      //         opt.out_dir.c_str(), shotid);
     }
     // --------------------- VIDEO CLIP GENERATOR ---------------------
     
@@ -562,13 +595,13 @@ void generate_highlight_clips( hecate_params& opt, vector<hecate::Range>& v_high
   // Close filelist
   fclose( ptr_filelist );
   
-  if( opt.mov )
-  {
-    // Concatenate segments
-    sprintf( outfile, "%s/%s_sum.mp4",
-            opt.out_dir.c_str(), filename.c_str() );
-    hecate::ffmpeg_video_concat( filelist, outfile );
-  }
+  // if( opt.mov )
+  // {
+  //   // Concatenate segments
+  //   sprintf( outfile, "%s/%s_sum.mp4",
+  //           opt.out_dir.c_str(), filename.c_str() );
+  //   hecate::ffmpeg_video_concat( filelist, outfile );
+  // }
   
   if( opt.gif && opt.gifsum )
   {
