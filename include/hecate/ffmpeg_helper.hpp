@@ -31,6 +31,7 @@ using namespace std;
 namespace hecate {
   const string _ffmpeg = hecate::which("ffmpeg");
   const string _ffmarg = "-loglevel quiet -y";
+  const string _ffpath = "%d.png"; //SDK
   const int _lfade = 8; // fade-in/out duration (unit: frame)
   
   // Crop video segment & resize
@@ -49,17 +50,17 @@ namespace hecate {
     sprintf( cmd, "%s -ss %s -t %s -i %s -strict -2 -vf %s %s %s",
             _ffmpeg.c_str(), start_time.c_str(), duration.c_str(),
             in_file.c_str(), filter, out_file.c_str(), _ffmarg.c_str());
-    
     system( cmd );
+
   };
   
   static inline void ffmpeg_video_concat(string in_filelist,
                                          string out_file)
   {
     char cmd[BUF_L];
-    sprintf( cmd, "%s -f concat -i %s -c copy %s %s",
-            _ffmpeg.c_str(), in_filelist.c_str(), out_file.c_str(),
-            _ffmarg.c_str() );
+    sprintf( cmd, "%s -f concat -i %s -c copy %s",
+            _ffmpeg.c_str(), in_filelist.c_str(), out_file.c_str()
+    );
     system( cmd );
   };
   
@@ -157,8 +158,26 @@ namespace hecate {
     sprintf( cmd, "rm %s", palette );
     system( cmd );
   };
-  
-  
+
+        //SDK: This function activate a 'video to frames' process.
+  static inline void ffmpeg_video2frames(string in_file,
+                                         string out_file,
+                                         string start_time,
+                                         string duration)
+  {
+    in_file = escape_space(in_file);
+    
+    char time_setup[BUF_S] = "";
+    if( !start_time.empty() && !duration.empty() ) {
+      sprintf( time_setup, "-ss %s -t %s",
+              start_time.c_str(), duration.c_str() );
+    }
+    char cmd[BUF_L];
+    sprintf( cmd, "%s %s -i %s -vframes 16 -y -f image2 %s_%s %s",
+            _ffmpeg.c_str(), time_setup, in_file.c_str(), out_file.c_str(), _ffpath.c_str(), _ffmarg.c_str());
+    system( cmd );
+
+  };
   
 }
 #endif

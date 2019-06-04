@@ -89,7 +89,7 @@ struct hecate_params {
   gif_fps(8),
   jpg_width_px(360),
   gif_width_px(360),
-  mov_width_px(360),
+  mov_width_px(720),
   max_duration(-1),
   fltr_begin_sec(-1.0),
   fltr_end_sec(-1.0),
